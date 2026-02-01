@@ -494,9 +494,11 @@ luloCmd
 
 luloCmd
   .command('withdraw')
-  .description('Withdraw from Lulo')
-  .requiredOption('--token <mint>', 'Token mint address')
-  .requiredOption('--amount <amount>', 'Amount')
+  .description('Initiate withdrawal from Lulo (24h cooldown for regular pool)')
+  .requiredOption('--token <token>', 'Token symbol (USDC)')
+  .option('--type <type>', 'Pool type: regular or protected', 'regular')
+  .option('--amount <amount>', 'Amount to withdraw')
+  .option('--percentage <pct>', 'Percentage to withdraw (25, 50, 100)')
   .option('--dry-run', 'Simulate')
   .action(async (opts) => {
     try {
@@ -504,22 +506,125 @@ luloCmd
       const connection = getConnection();
       const blinks = new BlinksExecutor(connection);
 
-      const blinkUrl = `https://lulo.dial.to/api/v0/withdraw`;
+      const poolType = opts.type || 'regular';
+      let blinkUrl = `https://lulo.dial.to/api/v0/withdraw/${opts.token}/${poolType}`;
+      if (opts.percentage) {
+        blinkUrl += `?percentage=${opts.percentage}`;
+      } else if (opts.amount) {
+        blinkUrl += `?amount=${opts.amount}`;
+      }
       
-      info(`Withdrawing ${opts.amount} from Lulo...`);
-      const blinkTx = await blinks.getTransaction(blinkUrl, wallet.address, {
-        token: opts.token,
-        amount: opts.amount,
-      });
+      info(`Initiating ${poolType} withdrawal from Lulo...`);
+      info(`Note: ${poolType === 'regular' ? '24-hour' : '48-hour'} cooldown applies. Use 'lulo pending' to check status.`);
+      const blinkTx = await blinks.getTransaction(blinkUrl, wallet.address);
 
       if (opts.dryRun) {
         const simResult = await blinks.simulate(blinkTx);
         console.log(formatOutput(simResult, getFormat()));
       } else {
         const signature = await blinks.signAndSend(blinkTx, wallet.getSigner());
-        success(`Withdrawal confirmed!`);
-        console.log(formatOutput({ signature }, getFormat()));
+        success(`Withdrawal initiated!`);
+        console.log(formatOutput({ signature, note: 'Use "blinks lulo pending" to check when you can complete.' }, getFormat()));
       }
+    } catch (e: unknown) {
+      const err = e as Error & { details?: string };
+      error(err.message);
+      if (err.details) {
+        try {
+          const parsed = JSON.parse(err.details);
+          if (parsed.message) error(`  → ${parsed.message}`);
+        } catch {
+          if (err.details !== err.message) error(`  → ${err.details}`);
+        }
+      }
+      process.exit(1);
+    }
+  });
+
+luloCmd
+  .command('pending')
+  .description('Check pending Lulo withdrawals and cooldown status')
+  .action(async () => {
+    try {
+      const wallet = Wallet.fromEnv();
+      const connection = getConnection();
+      
+      const LULO_PROGRAM = 'FL3X2pRsQ9zHENpZSKDRREtccwJuei8yg9fwDu9UN69Q';
+      const { PublicKey } = await import('@solana/web3.js');
+      
+      // Find withdrawal request accounts owned by Lulo program with our wallet
+      const accounts = await connection.getProgramAccounts(new PublicKey(LULO_PROGRAM), {
+        filters: [
+          { dataSize: 67 }, // Withdrawal request size
+          { memcmp: { offset: 11, bytes: wallet.address } }, // Owner pubkey at offset 11
+        ],
+      });
+      
+      if (accounts.length === 0) {
+        info('No pending withdrawals found.');
+        return;
+      }
+      
+      const pending = accounts.map(({ pubkey, account }) => {
+        const data = account.data;
+        const poolType = data[8];
+        const status = data[9];
+        const initiatedAt = Number(data.readBigUInt64LE(43));
+        const cooldownSeconds = Number(data.readBigUInt64LE(51));
+        const amount = Number(data.readBigUInt64LE(59));
+        
+        const completeAt = initiatedAt + cooldownSeconds;
+        const now = Math.floor(Date.now() / 1000);
+        const remaining = completeAt - now;
+        
+        return {
+          account: pubkey.toBase58(),
+          poolType: poolType === 0 ? 'regular' : poolType === 1 ? 'protected' : 'boosted',
+          amount: (amount / 1e6).toFixed(6) + ' USDC',
+          initiatedAt: new Date(initiatedAt * 1000).toISOString(),
+          cooldown: cooldownSeconds / 3600 + ' hours',
+          completeAt: new Date(completeAt * 1000).toISOString(),
+          status: remaining > 0 ? `Pending (${Math.floor(remaining / 3600)}h ${Math.floor((remaining % 3600) / 60)}m remaining)` : 'READY TO COMPLETE',
+          canComplete: remaining <= 0,
+        };
+      });
+      
+      console.log(formatOutput(pending, getFormat()));
+    } catch (e) {
+      error((e as Error).message);
+      process.exit(1);
+    }
+  });
+
+luloCmd
+  .command('rates')
+  .description('Show current USDC yield rates on Solana')
+  .action(async () => {
+    try {
+      // Fetch rates from DeFiLlama
+      const response = await fetch('https://yields.llama.fi/pools');
+      const data = await response.json() as { data: Array<{ project: string; symbol: string; chain: string; apy: number; tvlUsd: number }> };
+      
+      // Get top USDC yields on Solana
+      const rates = data.data
+        .filter(p => p.symbol === 'USDC' && p.chain === 'Solana' && p.tvlUsd > 500000)
+        .sort((a, b) => b.apy - a.apy)
+        .slice(0, 10)
+        .map(p => ({
+          protocol: p.project,
+          apy: (p.apy).toFixed(2) + '%',
+          tvl: '$' + (p.tvlUsd / 1e6).toFixed(1) + 'M',
+        }));
+      
+      if (rates.length === 0) {
+        info('No rates data available from DeFiLlama');
+        return;
+      }
+      
+      console.log(formatOutput({
+        note: 'Lulo auto-allocates USDC across Kamino, Drift, MarginFi, Jupiter for best yield',
+        topSolanaUsdcYields: rates,
+      }, getFormat()));
     } catch (e) {
       error((e as Error).message);
       process.exit(1);
