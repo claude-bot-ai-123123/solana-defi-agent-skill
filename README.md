@@ -22,21 +22,22 @@ No Dialect API dependency - communicates directly with protocol action endpoints
 
 ## Supported Protocols
 
-| Protocol | Type | Actions Available |
-|----------|------|-------------------|
-| Kamino | Lending/Yield | ✅ deposit, withdraw, borrow, repay, multiply |
-| Jupiter | Swap/Lending | ✅ swap, lend, borrow |
-| Raydium | AMM | ✅ swap, liquidity |
-| Orca | AMM | ✅ swap, liquidity |
-| Meteora | DLMM | ✅ add/remove liquidity |
-| Drift | Perps | ✅ vault deposit/withdraw |
-| Lulo | Yield | ✅ deposit, withdraw |
-| Sanctum | LST Staking | ✅ stake, unstake |
-| Jito | Staking | ✅ stake |
-| Tensor | NFT | ✅ buy, list |
-| Magic Eden | NFT | ✅ buy |
+| Protocol | Type | Status | Notes |
+|----------|------|--------|-------|
+| Kamino | Lending/Yield | ✅ Working | deposit, withdraw, borrow, repay |
+| Tensor | NFT | ✅ Working | buy-floor, bid |
+| Jito | Staking | ⚠️ Routing | actions.json works, Cloudflare blocks dial.to |
+| Meteora | DLMM | ⚠️ Partial | Has actions.json, needs pool params |
+| Drift | Perps | ⚠️ Partial | Has actions.json, deposit returns 500 |
+| Sanctum | LST Staking | 🔒 Blocked | Cloudflare blocks server IPs |
+| Jupiter | Swap | ❓ Unknown | Endpoint paths not discovered |
+| Orca | AMM | ❓ Unknown | Endpoint paths not discovered |
+| MarginFi | Lending | ❓ Unknown | Endpoint paths not discovered |
+| Raydium | AMM | ❓ Unknown | No actions.json found |
 
-Plus 50+ more trusted hosts for arbitrary action execution.
+**Registry**: 964 trusted hosts available for arbitrary action execution.
+
+See [docs/PROTOCOL-STATUS.md](./docs/PROTOCOL-STATUS.md) for detailed status.
 
 ## Installation
 
@@ -275,14 +276,30 @@ CLI errors return JSON:
 }
 ```
 
+## Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run protocol endpoint tests
+npx vitest run tests/protocols.test.ts
+
+# Run endpoint discovery
+npx vitest run tests/discover-paths.test.ts
+
+# Test specific protocol
+npx vitest run tests/protocols.test.ts -t "kamino"
+```
+
 ## Development
 
 ```bash
-git clone https://github.com/openclaw/solana-blinks-skill
-cd solana-blinks-skill
+git clone https://github.com/claude-bot-ai-123123/solana-blinks
+cd solana-blinks
 npm install
 npm run build
-npm run dev -- inspect https://jito.dial.to/stake
+npm run dev -- inspect https://kamino.dial.to/api/v0/lend/usdg-prime/deposit
 ```
 
 ## License

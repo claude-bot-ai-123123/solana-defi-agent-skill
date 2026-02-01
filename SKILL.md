@@ -319,6 +319,32 @@ Some endpoints require `type: "transaction"` in the POST body. The SDK includes 
 
 ---
 
+## Testing
+
+```bash
+# Run all protocol endpoint tests
+npx vitest run tests/protocols.test.ts
+
+# Run endpoint discovery
+npx vitest run tests/discover-paths.test.ts
+
+# Test specific protocol
+npx vitest run tests/protocols.test.ts -t "kamino"
+```
+
+### Test Results (2026-02-01)
+
+| Status | Protocols |
+|--------|-----------|
+| ✅ Working | Kamino (full), Tensor, Jito (routing) |
+| ⚠️ Partial | Meteora, Drift, Magic Eden |
+| 🔒 Blocked | Sanctum, Jito dial.to (Cloudflare) |
+| ❌ Unknown | Jupiter, Orca, MarginFi, Lulo, Helius, Raydium |
+
+See `docs/PROTOCOL-STATUS.md` for detailed status.
+
+---
+
 ## Links
 
 - [Solana Actions Spec](https://solana.com/developers/guides/advanced/actions)
