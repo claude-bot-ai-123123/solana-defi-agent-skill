@@ -6,10 +6,10 @@ Last tested: 2026-02-01
 
 | Status | Count |
 |--------|-------|
-| ✅ Working | 3 |
+| ✅ Working | 4 |
 | ⚠️ Partial | 3 |
 | 🔒 Cloudflare Blocked | 2 |
-| ❌ Not Working | 6 |
+| ❌ Not Working | 5 |
 
 ## Detailed Status
 
@@ -20,6 +20,13 @@ Last tested: 2026-02-01
 - **GET** `/api/v0/lend/{vault}/withdraw` → Returns action metadata
 - **POST** with `{ account, type: "transaction" }` → Returns transaction
 - **Vaults**: `usdg-prime`, `usdc-main`, `sol-main`, etc.
+- **Status**: Production ready
+
+#### Jupiter (`jupiter.dial.to`) ✅ NEW
+- **Pattern**: `/swap/{inputMint}-{outputMint}` or `/swap/{inputMint}-{outputMint}/{amount}`
+- **GET** `/swap/SOL-USDC` → Returns action metadata with 4 actions (0.1, 0.5, 1 SOL, custom)
+- **GET** `/swap/SOL-USDC/1` → Returns direct transaction action
+- **Example**: `https://jupiter.dial.to/swap/So111...112-EPjFWdd...t1v`
 - **Status**: Production ready
 
 #### Tensor (`tensor.trade`, `tensor.dial.to`)
@@ -71,12 +78,6 @@ Last tested: 2026-02-01
 ---
 
 ### ❌ Not Working / Unknown Paths
-
-#### Jupiter (`jupiter.dial.to`)
-- All tested paths return 404:
-  - `/swap`, `/api/swap`, `/api/v0/swap`, `/api/v1/swap`
-  - `/perps`, `/api/perps/earn/deposit`
-- **Issue**: Endpoint structure unknown
 
 #### Orca (`orca.dial.to`)
 - All tested paths return 404

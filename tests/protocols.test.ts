@@ -105,27 +105,48 @@ describe('Protocol Endpoints', () => {
   });
 
   // ============================================
-  // JUPITER
+  // JUPITER - CONFIRMED WORKING
+  // Pattern: /swap/{inputMint}-{outputMint}
   // ============================================
   describe('Jupiter', () => {
     const BASE = 'https://jupiter.dial.to';
+    const SOL = 'So11111111111111111111111111111111111111112';
+    const USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 
-    it('should GET swap metadata', async () => {
-      const url = `${BASE}/swap`;
+    it('should GET swap metadata with token mints', async () => {
+      const url = `${BASE}/swap/${SOL}-${USDC}`;
       try {
         const meta = await client.getAction(url);
         expect(meta.title).toBeDefined();
+        expect(meta.links?.actions).toBeDefined();
         results.push({
           protocol: 'jupiter',
-          endpoint: 'swap',
+          endpoint: 'swap/{inputMint}-{outputMint}',
           status: 'pass',
           metadata: { title: meta.title, actions: meta.links?.actions?.length }
         });
-        console.log(`✅ Jupiter swap: "${meta.title}"`);
+        console.log(`✅ Jupiter swap: "${meta.title}" (${meta.links?.actions?.length} actions)`);
       } catch (e: any) {
-        // May return 404 if path is different
         results.push({ protocol: 'jupiter', endpoint: 'swap', status: 'fail', error: e.message });
         console.log(`❌ Jupiter swap: ${e.message}`);
+      }
+    }, TIMEOUT);
+
+    it('should GET swap with amount', async () => {
+      const url = `${BASE}/swap/${SOL}-${USDC}/1`;
+      try {
+        const meta = await client.getAction(url);
+        expect(meta.title).toContain('1 SOL');
+        results.push({
+          protocol: 'jupiter',
+          endpoint: 'swap/{inputMint}-{outputMint}/{amount}',
+          status: 'pass',
+          metadata: { title: meta.title }
+        });
+        console.log(`✅ Jupiter swap w/amount: "${meta.title}"`);
+      } catch (e: any) {
+        results.push({ protocol: 'jupiter', endpoint: 'swap/amount', status: 'fail', error: e.message });
+        console.log(`❌ Jupiter swap w/amount: ${e.message}`);
       }
     }, TIMEOUT);
   });

@@ -137,13 +137,14 @@ export const PROTOCOL_ACTION_ENDPOINTS: Record<string, {
     displayName: 'Jupiter',
     category: 'swap-lending',
     website: 'https://jup.ag',
-    status: 'unknown',
+    status: 'working',
     actions: {
-      // Paths untested - all return 404
-      swap: 'https://jupiter.dial.to/swap',
+      // Pattern: /swap/{inputMint}-{outputMint} or /swap/{inputMint}-{outputMint}/{amount}
+      swap: 'https://jupiter.dial.to/swap/{inputMint}-{outputMint}',
+      'swap-amount': 'https://jupiter.dial.to/swap/{inputMint}-{outputMint}/{amount}',
     },
     trustedHosts: ['jupiter.dial.to', 'jup.ag'],
-    notes: 'Endpoint paths unknown. All tested paths return 404.',
+    notes: 'Use token mints joined with hyphen. Amount in path for direct tx.',
   },
   
   raydium: {
