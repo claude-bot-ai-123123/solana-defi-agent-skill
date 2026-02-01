@@ -1,6 +1,6 @@
 {
   "name": "@openclaw/solana-blinks",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Production-ready Solana Blinks CLI with full Dialect Standard Blinks Library (SBL) coverage",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
