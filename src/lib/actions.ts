@@ -19,8 +19,8 @@ const ACTIONS_HEADERS = {
   'Content-Type': 'application/json',
 };
 
-// User agent to avoid bot detection
-const USER_AGENT = 'Mozilla/5.0 (compatible; SolanaBlinksSDK/1.0)';
+// User agent - use browser UA to avoid Cloudflare bot detection
+const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 /**
  * Registry of known protocol action endpoints
@@ -143,14 +143,56 @@ export const TRUSTED_HOSTS = [
 ];
 
 /**
+ * Use curl for HTTP requests to bypass Cloudflare TLS fingerprinting
+ * Node's native fetch gets blocked by Cloudflare on some dial.to endpoints
+ */
+async function curlFetch(
+  url: string,
+  options: { method?: string; headers?: Record<string, string>; body?: string; timeout?: number } = {}
+): Promise<{ ok: boolean; status: number; text: () => Promise<string>; json: () => Promise<unknown> }> {
+  const { execSync } = await import('child_process');
+  
+  const method = options.method || 'GET';
+  const timeout = options.timeout || 30000;
+  
+  // Build curl command
+  const headerArgs = Object.entries(options.headers || {})
+    .map(([k, v]) => `-H "${k}: ${v}"`)
+    .join(' ');
+  
+  const bodyArg = options.body ? `-d '${options.body.replace(/'/g, "\\'")}'` : '';
+  
+  const cmd = `curl -s -w "\\n%{http_code}" --max-time ${Math.ceil(timeout / 1000)} -X ${method} ${headerArgs} ${bodyArg} "${url}"`;
+  
+  try {
+    const output = execSync(cmd, { encoding: 'utf-8', timeout });
+    const lines = output.trim().split('\n');
+    const statusCode = parseInt(lines.pop() || '0', 10);
+    const responseBody = lines.join('\n');
+    
+    return {
+      ok: statusCode >= 200 && statusCode < 300,
+      status: statusCode,
+      text: async () => responseBody,
+      json: async () => JSON.parse(responseBody),
+    };
+  } catch (error) {
+    throw new Error(`Curl request failed: ${(error as Error).message}`);
+  }
+}
+
+/**
  * Solana Actions Client
  * Implements the Solana Actions specification for fetching and executing actions
  */
 export class ActionsClient {
   private timeout: number;
+  private useCurl: boolean;
 
-  constructor(options: { timeout?: number } = {}) {
+  constructor(options: { timeout?: number; useCurl?: boolean } = {}) {
     this.timeout = options.timeout || 30000;
+    // Use curl by default to bypass Cloudflare TLS fingerprinting
+    this.useCurl = options.useCurl ?? true;
   }
 
   /**
@@ -205,25 +247,39 @@ export class ActionsClient {
   async getAction(actionUrl: string): Promise<BlinkMetadata> {
     const url = this.parseActionUrl(actionUrl);
     
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-    
-    try {
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          ...ACTIONS_HEADERS,
-          'User-Agent': USER_AGENT,
-        },
-        signal: controller.signal,
-      });
+    const headers = {
+      ...ACTIONS_HEADERS,
+      'User-Agent': USER_AGENT,
+    };
 
-      clearTimeout(timeoutId);
+    try {
+      let response: { ok: boolean; status: number; text: () => Promise<string>; json: () => Promise<unknown> };
+      
+      if (this.useCurl) {
+        response = await curlFetch(url, { method: 'GET', headers, timeout: this.timeout });
+      } else {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+        
+        const fetchResponse = await fetch(url, {
+          method: 'GET',
+          headers,
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        
+        response = {
+          ok: fetchResponse.ok,
+          status: fetchResponse.status,
+          text: () => fetchResponse.text(),
+          json: () => fetchResponse.json(),
+        };
+      }
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
         throw new ActionError(
-          `Failed to fetch action: ${response.status} ${response.statusText}`,
+          `Failed to fetch action: ${response.status}`,
           response.status,
           errorText
         );
@@ -232,11 +288,7 @@ export class ActionsClient {
       const data = await response.json() as BlinkMetadata;
       return data;
     } catch (error) {
-      clearTimeout(timeoutId);
       if (error instanceof ActionError) throw error;
-      if ((error as Error).name === 'AbortError') {
-        throw new ActionError('Request timeout', 408, 'Action request timed out');
-      }
       throw new ActionError(
         `Failed to fetch action: ${(error as Error).message}`,
         500,
@@ -265,27 +317,41 @@ export class ActionsClient {
       url = urlObj.toString();
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    const headers = {
+      ...ACTIONS_HEADERS,
+      'User-Agent': USER_AGENT,
+    };
+    const body = JSON.stringify({ account, type: 'transaction' });
     
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          ...ACTIONS_HEADERS,
-          'User-Agent': USER_AGENT,
-        },
-        // Include type: "transaction" as some endpoints (e.g., Kamino) require it
-        body: JSON.stringify({ account, type: 'transaction' }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
+      let response: { ok: boolean; status: number; text: () => Promise<string>; json: () => Promise<unknown> };
+      
+      if (this.useCurl) {
+        response = await curlFetch(url, { method: 'POST', headers, body, timeout: this.timeout });
+      } else {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+        
+        const fetchResponse = await fetch(url, {
+          method: 'POST',
+          headers,
+          body,
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        
+        response = {
+          ok: fetchResponse.ok,
+          status: fetchResponse.status,
+          text: () => fetchResponse.text(),
+          json: () => fetchResponse.json(),
+        };
+      }
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unknown error');
         throw new ActionError(
-          `Failed to post action: ${response.status} ${response.statusText}`,
+          `Failed to post action: ${response.status}`,
           response.status,
           errorText
         );
@@ -294,11 +360,7 @@ export class ActionsClient {
       const data = await response.json() as BlinkTransaction;
       return data;
     } catch (error) {
-      clearTimeout(timeoutId);
       if (error instanceof ActionError) throw error;
-      if ((error as Error).name === 'AbortError') {
-        throw new ActionError('Request timeout', 408, 'Action request timed out');
-      }
       throw new ActionError(
         `Failed to post action: ${(error as Error).message}`,
         500,

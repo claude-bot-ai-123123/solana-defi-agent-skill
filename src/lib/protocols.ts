@@ -68,12 +68,14 @@ export const PROTOCOL_ACTION_ENDPOINTS: Record<string, {
     displayName: 'Jito',
     category: 'staking',
     website: 'https://jito.network',
-    status: 'blocked',
+    status: 'working',
     actions: {
       stake: 'https://jito.dial.to/stake',
+      'stake-percentage': 'https://jito.dial.to/stake/percentage/{pct}',
+      'stake-amount': 'https://jito.dial.to/stake/amount/{amount}',
     },
     trustedHosts: ['jito.dial.to', 'jito.network'],
-    notes: 'Cloudflare blocks server IPs. Works in browser.',
+    notes: 'Working. Returns 4 actions: 25%, 50%, 100%, custom amount.',
   },
   
   sanctum: {
@@ -187,12 +189,13 @@ export const PROTOCOL_ACTION_ENDPOINTS: Record<string, {
     displayName: 'Helius',
     category: 'staking',
     website: 'https://helius.dev',
-    status: 'blocked',
+    status: 'working',
     actions: {
       stake: 'https://helius.dial.to/stake',
+      'stake-amount': 'https://helius.dial.to/stake/{amount}',
     },
     trustedHosts: ['helius.dial.to'],
-    notes: 'Returns 403 Forbidden.',
+    notes: 'Working at /stake. Returns 4 actions: 1, 5, 10 SOL, custom amount.',
   },
   
   magiceden: {

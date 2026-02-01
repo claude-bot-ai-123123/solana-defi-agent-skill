@@ -323,12 +323,14 @@ describe('Protocol Endpoints', () => {
   });
 
   // ============================================
-  // SANCTUM
+  // SANCTUM - Endpoint paths unknown (returns 404)
   // ============================================
   describe('Sanctum', () => {
     const BASE = 'https://sanctum.dial.to';
 
-    it('should GET stake endpoint', async () => {
+    it('should GET stake endpoint (path unknown)', async () => {
+      // Note: sanctum.dial.to returns 404 for all tested paths
+      // The endpoint structure is not yet discovered
       try {
         const meta = await client.getAction(`${BASE}/stake`);
         results.push({
@@ -339,14 +341,9 @@ describe('Protocol Endpoints', () => {
         });
         console.log(`✅ Sanctum: "${meta.title}"`);
       } catch (e: any) {
-        // Cloudflare often blocks server IPs
-        if (e.message?.includes('403') || e.message?.includes('blocked')) {
-          results.push({ protocol: 'sanctum', endpoint: 'stake', status: 'skip', error: 'Cloudflare blocked' });
-          console.log(`⏭️ Sanctum: Cloudflare blocked (expected from server IP)`);
-        } else {
-          results.push({ protocol: 'sanctum', endpoint: 'stake', status: 'fail', error: e.message });
-          console.log(`❌ Sanctum: ${e.message}`);
-        }
+        // 404 means path not found, not blocked
+        results.push({ protocol: 'sanctum', endpoint: 'stake', status: 'fail', error: e.message });
+        console.log(`❌ Sanctum: ${e.message} (endpoint path unknown)`);
       }
     }, TIMEOUT);
   });
@@ -418,23 +415,24 @@ describe('Protocol Endpoints', () => {
   });
 
   // ============================================
-  // HELIUS
+  // HELIUS - CONFIRMED WORKING at /stake
   // ============================================
   describe('Helius', () => {
     const BASE = 'https://helius.dial.to';
 
-    it('should GET root endpoint', async () => {
+    it('should GET /stake endpoint', async () => {
       try {
-        const meta = await client.getAction(`${BASE}/`);
+        const meta = await client.getAction(`${BASE}/stake`);
+        expect(meta.title).toBeDefined();
         results.push({
           protocol: 'helius',
-          endpoint: '/',
+          endpoint: '/stake',
           status: 'pass',
-          metadata: { title: meta.title }
+          metadata: { title: meta.title, actions: meta.links?.actions?.length }
         });
-        console.log(`✅ Helius: "${meta.title}"`);
+        console.log(`✅ Helius: "${meta.title}" (${meta.links?.actions?.length} actions)`);
       } catch (e: any) {
-        results.push({ protocol: 'helius', endpoint: '/', status: 'fail', error: e.message });
+        results.push({ protocol: 'helius', endpoint: '/stake', status: 'fail', error: e.message });
         console.log(`❌ Helius: ${e.message}`);
       }
     }, TIMEOUT);
