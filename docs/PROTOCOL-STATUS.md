@@ -6,10 +6,9 @@ Last tested: 2026-02-01
 
 | Status | Count |
 |--------|-------|
-| ✅ Working | 4 |
-| ⚠️ Partial | 3 |
-| 🔒 Cloudflare Blocked | 2 |
-| ❌ Not Working | 5 |
+| ✅ Working | 6 |
+| ⚠️ Partial | 2 |
+| ❌ Unknown Paths | 5 |
 
 ## Detailed Status
 
@@ -34,9 +33,18 @@ Last tested: 2026-02-01
 - **actions.json** routes `/item/**` → `tensor.dial.to/bid/**`
 - **Status**: Working (NFT-specific, needs collection/item params)
 
-#### Jito (`jito.network`)
-- **actions.json** routes `/` → `jito.dial.to/stake`
-- **Status**: Routing works, but dial.to endpoint blocked by Cloudflare
+#### Jito (`jito.dial.to`) ✅ FIXED
+- **Pattern**: `/stake` or `/stake/percentage/{pct}` or `/stake/amount/{amount}`
+- **GET** `/stake` → Returns 4 actions (25%, 50%, 100%, custom)
+- **Example**: `https://jito.dial.to/stake`
+- **Note**: Was blocked by Cloudflare TLS fingerprinting. Fixed by using curl.
+- **Status**: Production ready
+
+#### Helius (`helius.dial.to`) ✅ DISCOVERED
+- **Pattern**: `/stake` or `/stake/{amount}`
+- **GET** `/stake` → Returns 4 actions (1, 5, 10 SOL, custom)
+- **Example**: `https://helius.dial.to/stake`
+- **Status**: Production ready
 
 ---
 
@@ -65,19 +73,11 @@ Last tested: 2026-02-01
 
 ---
 
-### 🔒 Cloudflare Blocked (Server IPs)
+### ❌ Unknown Paths (return 404)
 
 #### Sanctum (`sanctum.dial.to`)
-- Returns 403 Forbidden from server IPs
-- Works from browser
-
-#### Jito (`jito.dial.to`)
-- Returns 403 Forbidden from server IPs
-- Self-hosted `jito.network` routes here but also blocked
-
----
-
-### ❌ Not Working / Unknown Paths
+- All tested paths return 404
+- **Issue**: Endpoint structure unknown (not Cloudflare block)
 
 #### Orca (`orca.dial.to`)
 - All tested paths return 404
@@ -91,10 +91,6 @@ Last tested: 2026-02-01
 - `lulo.dial.to`: 404 on all paths
 - `blink.lulo.fi`: SSL certificate error (526)
 - **Issue**: Both endpoints broken
-
-#### Helius (`helius.dial.to`)
-- Returns 403 Forbidden
-- **Issue**: Access denied
 
 #### Magic Eden (`api-mainnet.magiceden.dev`)
 - Returns 400 Bad Request
@@ -123,10 +119,13 @@ npx vitest run tests/protocols.test.ts -t "kamino"
 
 ## Notes
 
-1. **Cloudflare blocking**: Many dial.to subdomains block server IPs. Works fine from browsers.
+1. **TLS Fingerprinting**: Node.js fetch was blocked by Cloudflare due to TLS fingerprinting. Fixed by using curl subprocess.
 
-2. **Path discovery needed**: Most protocols don't have documented API paths. Kamino is the exception.
+2. **Path discovery needed**: Most protocols don't have documented API paths. Kamino and Jupiter patterns discovered through testing.
 
-3. **Parameter requirements**: Many endpoints likely need specific parameters (pool IDs, token addresses) that aren't discoverable without docs.
+3. **Parameter requirements**: Many endpoints need specific parameters:
+   - Jupiter: `/swap/{inputMint}-{outputMint}`
+   - Jito: `/stake/amount/{amount}`
+   - Helius: `/stake/{amount}`
 
-4. **Dialect Markets API**: Alternative approach - use the Markets API to get pre-built blink URLs for supported protocols.
+4. **Still unknown**: Orca, MarginFi, Raydium, Lulo, Sanctum return 404 for all tested paths.
