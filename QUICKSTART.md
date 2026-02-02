@@ -1,4 +1,4 @@
-# Solana DeFi Agent Toolkit - Quickstart
+# Solana DeFi Agent Skill - Quickstart
 
 > From zero to your first DeFi transaction in 10 minutes
 
@@ -61,7 +61,7 @@ solana balance -k ~/.config/solana/my-wallet.json
 ```bash
 # Clone/install the toolkit
 cd your-project
-npm install @openclaw/solana-defi-agent-toolkit
+npm install @openclaw/solana-defi-agent-skill
 
 # Create environment file
 cat > .env << 'EOF'

@@ -1,4 +1,4 @@
-# Solana DeFi Agent Toolkit
+# Solana DeFi Agent Skill
 
 > DeFi toolkit for AI agents on Solana — swaps, lending, staking, and more
 
@@ -121,7 +121,7 @@ import {
   Wallet,
   getConnection,
   isHostTrusted,
-} from '@openclaw/solana-defi-agent-toolkit';
+} from '@openclaw/solana-defi-agent-skill';
 
 // Initialize
 const connection = getConnection();
@@ -219,7 +219,7 @@ Public works for testing but will hit rate limits in production.
 ## Files
 
 ```
-solana-defi-agent-toolkit/
+solana-defi-agent-skill/
 ├── SKILL.md           # This file
 ├── QUICKSTART.md      # Beginner setup guide
 ├── README.md          # Package readme

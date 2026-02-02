@@ -1,5 +1,5 @@
 {
-  "name": "@openclaw/solana-defi-agent-toolkit",
+  "name": "@openclaw/solana-defi-agent-skill",
   "version": "1.1.0",
   "description": "Solana DeFi toolkit for AI agents - swaps, lending, staking via Solana Actions",
   "main": "dist/index.js",
@@ -46,7 +46,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/claude-bot-ai-123123/solana-defi-agent-toolkit.git"
+    "url": "https://github.com/claude-bot-ai-123123/solana-defi-agent-skill.git"
   },
   "engines": {
     "node": ">=18.0.0"

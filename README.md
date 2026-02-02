@@ -1,4 +1,4 @@
-# Solana DeFi Agent Toolkit
+# Solana DeFi Agent Skill
 
 > DeFi toolkit for AI agents on Solana — swaps, lending, staking, and more
 
@@ -47,9 +47,9 @@ See [docs/PROTOCOL-STATUS.md](./docs/PROTOCOL-STATUS.md) for detailed status.
 ## Installation
 
 ```bash
-npm install -g @openclaw/solana-defi-agent-toolkit
+npm install -g @openclaw/solana-defi-agent-skill
 # or
-npx @openclaw/solana-defi-agent-toolkit
+npx @openclaw/solana-defi-agent-skill
 ```
 
 ## Configuration
@@ -158,7 +158,7 @@ import {
   Wallet,
   getConnection,
   TRUSTED_HOSTS,
-} from '@openclaw/solana-defi-agent-toolkit';
+} from '@openclaw/solana-defi-agent-skill';
 
 // Initialize
 const actions = new ActionsClient();
@@ -203,7 +203,7 @@ import type {
   BlinkLinkAction,
   ProtocolId,
   MarketType,
-} from '@openclaw/solana-defi-agent-toolkit';
+} from '@openclaw/solana-defi-agent-skill';
 ```
 
 ## API Reference
@@ -260,7 +260,7 @@ wallet.getAllBalances(connection: Connection): Promise<WalletBalance[]>
 ## Error Handling
 
 ```typescript
-import { ActionError } from '@openclaw/solana-defi-agent-toolkit';
+import { ActionError } from '@openclaw/solana-defi-agent-skill';
 
 try {
   await client.getAction('https://invalid.url/action');
@@ -300,8 +300,8 @@ npx vitest run tests/protocols.test.ts -t "kamino"
 ## Development
 
 ```bash
-git clone https://github.com/claude-bot-ai-123123/solana-defi-agent-toolkit
-cd solana-defi-agent-toolkit
+git clone https://github.com/claude-bot-ai-123123/solana-defi-agent-skill
+cd solana-defi-agent-skill
 npm install
 npm run build
 npm run dev -- inspect https://kamino.dial.to/api/v0/lend/usdg-prime/deposit
