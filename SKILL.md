@@ -1,169 +1,113 @@
 # Solana Blinks Skill
 
-> Production-ready CLI for Solana Actions with direct protocol integration
+> Execute Solana DeFi transactions through the native Actions specification
 
-## Overview
+**New here?** → Start with [QUICKSTART.md](./QUICKSTART.md) for a 10-minute setup guide.
 
-Execute Solana DeFi operations through the native Solana Actions specification. Communicates directly with protocol action endpoints via the Dialect Standard Blinks Library.
+---
 
-## Architecture
+## What This Does
 
-This skill implements the **Solana Actions specification** directly:
-1. **GET** request to action URL → returns metadata + available actions
-2. **POST** request with `{ account: walletAddress, type: "transaction" }` → returns transaction to sign
-3. Sign transaction with wallet and submit to Solana
+Solana Blinks (Blockchain Links) let you execute DeFi operations—swaps, deposits, staking—through simple URLs. This skill gives you:
 
-**Data Sources:**
-- **Actions Registry**: `https://actions-registry.dial.to/all` - 964+ trusted action hosts
-- **Protocol Endpoints**: Direct `*.dial.to` subdomains for major protocols
-- **Markets API**: Dialect's Standard Blinks Library for market data + blink URLs
+- **CLI** for quick operations: `blinks execute <url> --amount=100`
+- **SDK** for building automations
+- **Registry access** to 900+ trusted protocol endpoints
+
+```bash
+# Example: Deposit USDC to Kamino yield vault
+blinks execute "https://kamino.dial.to/api/v0/lend/usdc-main/deposit" --amount=100
+```
+
+---
+
+## ⚠️ Before You Start
+
+### Required
+- [ ] Solana wallet keypair file (see [QUICKSTART.md](./QUICKSTART.md#step-1-create-a-solana-wallet))
+- [ ] SOL for transaction fees (~0.01 SOL / $2 minimum)
+- [ ] Node.js 18+
+
+### Environment Variables
+```bash
+# .env file
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+SOLANA_WALLET_PATH=~/.config/solana/my-wallet.json
+```
+
+### 🔒 Security
+- **Never commit keypairs to git** - use `.env` and `.gitignore`
+- **Test with small amounts first** - mistakes happen
+- **Verify hosts are trusted** - CLI warns about untrusted hosts
+- **Use a dedicated wallet** - not your main holdings
+
+---
+
+## Protocol Status (Updated 2026-02-01)
+
+### ✅ Working
+
+| Protocol | Actions | Endpoint |
+|----------|---------|----------|
+| **Kamino** | Deposit, withdraw, borrow, repay | `kamino.dial.to` |
+| **Jito** | Stake SOL | `jito.network`, `jito.dial.to` |
+| **Tensor** | Buy floor, bid on NFTs | `tensor.dial.to` |
+| **Drift** | Vault deposit/withdraw | `app.drift.trade` |
+
+### 🔑 Needs API Key
+
+| Protocol | Get Key | Notes |
+|----------|---------|-------|
+| **Lulo** | [dev.lulo.fi](https://dev.lulo.fi) | 24hr withdrawal cooldown |
+| **Jupiter** | [portal.jup.ag](https://portal.jup.ag) | Free tier deprecated Jan 2026 |
+
+### ❌ Currently Broken
+
+| Protocol | Issue | Workaround |
+|----------|-------|------------|
+| **Sanctum** | Cloudflare blocks server IPs | Use their web UI |
+| **Some dial.to** | Rate limiting | Try self-hosted endpoints |
+
+### ❓ Untested
+
+MarginFi, Orca, Meteora, Helius, Raydium - endpoints exist but need verification.
+
+---
 
 ## Quick Reference
 
-```bash
-# Inspect any blink/action URL
-blinks inspect <url>                           # Preview metadata and actions
-blinks inspect "https://kamino.dial.to/api/v0/lend/usdg-prime/deposit"
+### Inspect Before Executing
 
-# Execute actions
-blinks execute <url> --amount=100              # Execute with amount
-blinks execute <url> --dry-run                 # Simulate first
-
-# Protocol-specific commands
-blinks kamino deposit --vault=usdc-prime --amount=100
-blinks jupiter swap --input=SOL --output=USDC --amount=1
-```
-
-## Environment Setup
-
-```bash
-# Required
-export SOLANA_RPC_URL="https://api.mainnet-beta.solana.com"
-
-# Wallet (choose one):
-export SOLANA_WALLET_PATH="~/.config/solana/id.json"  # Recommended: path to keypair file
-# OR
-export SOLANA_PRIVATE_KEY="your-base58-key"           # Fallback: direct key (less secure)
-```
-
----
-
-## Supported Protocols (via Dialect Blinks)
-
-### Confirmed Working ✅
-
-| Protocol | Host | Actions | Example |
-|----------|------|---------|---------|
-| **Kamino** | `kamino.dial.to` | lend, borrow, multiply | `/api/v0/lend/{vault}/deposit` |
-| **Drift** | `app.drift.trade` | vault deposit/withdraw | `/api/blinks/deposit` |
-| **Jito** | `jito.dial.to`, `jito.network` | stake | `/stake` |
-| **Tensor** | `tensor.dial.to`, `tensor.trade` | buy-floor, bid | `/buy-floor/**` |
-
-### Available (paths may vary)
-
-| Protocol | Host(s) | Notes |
-|----------|---------|-------|
-| Jupiter | `jupiter.dial.to` | Swap, lend |
-| Raydium | `share.raydium.io` | AMM swap/LP |
-| Orca | `orca.dial.to` | Whirlpools |
-| Meteora | `meteora.dial.to` | DLMM, bonding curves |
-| MarginFi | `marginfi.dial.to` | Lending |
-| Sanctum | `sanctum.dial.to` | LST staking |
-| Lulo | `lulo.dial.to` | Yield aggregator |
-| Helius | `helius.dial.to` | Staking |
-
-### Registry Stats
-- **964 trusted hosts** in the Dialect registry
-- **10 known malicious hosts** (blocked)
-- Many protocols have multiple entry points (dial.to + self-hosted)
-
----
-
-## Blink URL Formats
-
-The CLI supports multiple URL formats:
-
-```bash
-# Solana Action protocol
-blinks inspect "solana-action:https://kamino.dial.to/api/v0/lend/usdc/deposit"
-
-# Blink protocol (internal)
-blinks inspect "blink:https://kamino.dial.to/api/v0/lend/usdc/deposit"
-
-# dial.to interstitial
-blinks inspect "https://dial.to/?action=solana-action:https://kamino.dial.to/..."
-
-# Direct URL
-blinks inspect "https://kamino.dial.to/api/v0/lend/usdc/deposit"
-```
-
----
-
-## Commands
-
-### Inspect Action URL
-
-Preview any blink URL before execution:
+Always preview what a blink does:
 
 ```bash
 blinks inspect <url>
 ```
 
-Returns:
-```json
-{
-  "url": "https://kamino.dial.to/api/v0/lend/usdg-prime/deposit",
-  "trusted": true,
-  "metadata": {
-    "title": "Deposit USDG in the USDG Prime on Kamino",
-    "description": "Deposit USDG into the USDG Prime vault",
-    "icon": "https://...",
-    "label": "Deposit"
-  },
-  "actions": [
-    { "label": "25%", "href": "/api/v0/lend/.../deposit?percentage=25" },
-    { "label": "50%", "href": "/api/v0/lend/.../deposit?percentage=50" },
-    { "label": "100%", "href": "/api/v0/lend/.../deposit?percentage=100" },
-    { 
-      "label": "Deposit", 
-      "href": "/api/v0/lend/.../deposit?amount={amount}",
-      "parameters": [{"name": "amount", "type": "number"}]
-    }
-  ]
-}
-```
+Shows metadata, available actions, and trust status.
 
-### Execute Action
+### Execute Transactions
 
 ```bash
-# Basic execution
-blinks execute <url> --amount=100
-
-# With custom params
-blinks execute <url> -p '{"inputMint":"...", "outputMint":"...", "amount":"100"}'
-
-# Dry run (simulation)
+# Dry run first (simulates without sending)
 blinks execute <url> --amount=100 --dry-run
+
+# Execute for real
+blinks execute <url> --amount=100
 ```
 
-### Protocol Commands
-
-#### Kamino Finance
+### Protocol-Specific Commands
 
 ```bash
-# Yield vaults (Kamino Lend)
-blinks kamino deposit --vault=usdg-prime --amount=100
-blinks kamino withdraw --vault=usdg-prime --amount=50
+# Kamino
+blinks kamino deposit --vault=usdc-main --amount=100
+blinks kamino withdraw --vault=usdc-main --amount=50
 
-# Lending (Kamino Borrow)
-blinks kamino borrow --market=<addr> --reserve=<addr> --amount=100
-blinks kamino repay --market=<addr> --reserve=<addr> --amount=50
-```
-
-#### Jito
-
-```bash
+# Jito
 blinks jito stake --amount=1
+
+# Generic (any blink URL)
+blinks execute "https://..." --amount=X
 ```
 
 ---
@@ -176,182 +120,121 @@ import {
   BlinksExecutor,
   Wallet,
   getConnection,
-  getTrustedHosts,
-  getRegistryStats,
   isHostTrusted,
-  PROTOCOL_ACTION_ENDPOINTS,
 } from '@openclaw/solana-blinks';
 
 // Initialize
-const actions = new ActionsClient();
 const connection = getConnection();
 const wallet = Wallet.fromEnv();
-const blinks = new BlinksExecutor(connection);
+const actions = new ActionsClient();
+const executor = new BlinksExecutor(connection);
 
-// Check registry
-const stats = await getRegistryStats();
-console.log(`${stats.trustedCount} trusted hosts`);
-
-// Validate a host
+// 1. Check if host is trusted
 const trusted = await isHostTrusted('https://kamino.dial.to');
+if (!trusted) throw new Error('Untrusted host!');
 
-// Get action metadata (GET)
+// 2. Get action metadata
 const metadata = await actions.getAction(
-  'https://kamino.dial.to/api/v0/lend/usdg-prime/deposit'
+  'https://kamino.dial.to/api/v0/lend/usdc-main/deposit'
 );
+console.log('Available actions:', metadata.links.actions);
 
-// Get transaction (POST)
+// 3. Get transaction
 const tx = await actions.postAction(
-  'https://kamino.dial.to/api/v0/lend/usdg-prime/deposit?amount=100',
+  'https://kamino.dial.to/api/v0/lend/usdc-main/deposit?amount=100',
   wallet.address
 );
 
-// Simulate
-const sim = await blinks.simulate(tx);
+// 4. Simulate first
+const sim = await executor.simulate(tx);
 if (!sim.success) {
-  console.error('Simulation failed:', sim.error);
+  throw new Error(`Simulation failed: ${sim.error}`);
 }
 
-// Execute
-const signature = await blinks.signAndSend(tx, wallet.getSigner());
-console.log('Confirmed:', signature);
-```
-
-### Using Protocol Handlers
-
-```typescript
-import { KaminoHandler, ActionsClient, BlinksExecutor, getConnection } from '@openclaw/solana-blinks';
-
-const connection = getConnection();
-const actionsClient = new ActionsClient();
-const blinks = new BlinksExecutor(connection);
-const kamino = new KaminoHandler(actionsClient, blinks);
-
-// Deposit to Kamino vault
-const tx = await kamino.getDepositTransaction(
-  'usdg-prime',
-  walletAddress,
-  '100'
-);
+// 5. Execute
+const signature = await executor.signAndSend(tx, wallet.getSigner());
+console.log('Success:', `https://solscan.io/tx/${signature}`);
 ```
 
 ---
 
-## Registry API
+## How Blinks Work
 
-Fetch trusted hosts from the Dialect registry:
-
-```typescript
-import { 
-  getTrustedHosts, 
-  isHostTrusted, 
-  isHostMalicious,
-  getProtocolHosts,
-  getRegistryStats,
-  clearRegistryCache 
-} from '@openclaw/solana-blinks';
-
-// Get all trusted hosts (cached for 1 hour)
-const hosts = await getTrustedHosts();
-console.log(`${hosts.size} trusted hosts`);
-
-// Check specific URL
-const isTrusted = await isHostTrusted('https://kamino.dial.to');
-const isMalicious = await isHostMalicious('https://fake-site.com');
-
-// Get hosts for a protocol
-const kaminoHosts = await getProtocolHosts('kamino');
-// ['kamino.dial.to']
-
-const meteoraHosts = await getProtocolHosts('meteora');
-// ['meteora.dial.to', 'meteorafarmer.shop']
-```
-
----
-
-## Action Endpoints Reference
-
-### Kamino (Confirmed Working)
+1. **GET** request to action URL → Returns metadata + available actions
+2. **POST** request with wallet address → Returns transaction to sign
+3. Sign transaction locally and submit to Solana
 
 ```
-GET  https://kamino.dial.to/api/v0/lend/{vault}/deposit
-GET  https://kamino.dial.to/api/v0/lend/{vault}/withdraw
-POST https://kamino.dial.to/api/v0/lend/{vault}/deposit?amount={amount}
-     Body: { "account": "...", "type": "transaction" }
+User → GET blink URL → Protocol returns actions
+User → POST with wallet → Protocol returns transaction
+User → Sign & submit → Transaction confirmed
 ```
 
-Vault slugs: `usdg-prime`, `usdc-main`, `sol-main`, etc.
-
-### Jito
-
-```
-GET  https://jito.dial.to/stake
-POST https://jito.dial.to/stake
-     Body: { "account": "...", "type": "transaction" }
-```
-
-### Drift
-
-```
-GET  https://app.drift.trade/api/blinks/deposit
-POST https://app.drift.trade/api/blinks/deposit
-```
-
-### Tensor
-
-```
-https://tensor.dial.to/buy-floor/**
-https://tensor.dial.to/bid/**
-```
+The skill handles all of this. You just provide the URL and amount.
 
 ---
 
 ## Troubleshooting
 
-### Cloudflare Blocking
-Some dial.to endpoints block server IPs via Cloudflare. Affected:
-- `sanctum.dial.to`
-- `jito.dial.to` (sometimes)
-
-**Workaround**: Use self-hosted endpoints when available (e.g., `jito.network`).
-
-### 422 Unprocessable Content
-Usually means the wallet doesn't have the required tokens. Check balances before executing.
-
-### 400 Bad Request
-Some endpoints require `type: "transaction"` in the POST body. The SDK includes this automatically.
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `422 Unprocessable Entity` | Missing required tokens | Check token balance before deposit |
+| `403 Forbidden` | Cloudflare blocking | Try protocol's self-hosted endpoint |
+| `Transaction simulation failed` | Insufficient SOL or stale tx | Check balance, retry quickly |
+| `Rate limit exceeded` | Public RPC overloaded | Use Helius/QuickNode free tier |
+| `Untrusted host warning` | Host not in Dialect registry | Verify URL is correct |
 
 ---
 
-## Testing
+## Blink URL Formats
+
+The CLI accepts multiple formats:
 
 ```bash
-# Run all protocol endpoint tests
-npx vitest run tests/protocols.test.ts
+# Direct URL (recommended)
+blinks inspect "https://kamino.dial.to/api/v0/lend/usdc/deposit"
 
-# Run endpoint discovery
-npx vitest run tests/discover-paths.test.ts
+# Solana Action protocol
+blinks inspect "solana-action:https://kamino.dial.to/..."
 
-# Test specific protocol
-npx vitest run tests/protocols.test.ts -t "kamino"
+# dial.to interstitial
+blinks inspect "https://dial.to/?action=solana-action:https://..."
 ```
 
-### Test Results (2026-02-01)
+---
 
-| Status | Protocols |
-|--------|-----------|
-| ✅ Working | Kamino (full), Tensor, Jito (routing) |
-| ⚠️ Partial | Meteora, Drift, Magic Eden |
-| 🔒 Blocked | Sanctum, Jito dial.to (Cloudflare) |
-| ❌ Unknown | Jupiter, Orca, MarginFi, Lulo, Helius, Raydium |
+## RPC Recommendations
 
-See `docs/PROTOCOL-STATUS.md` for detailed status.
+| Provider | Free Tier | Link |
+|----------|-----------|------|
+| **Helius** | 100k req/day | [helius.dev](https://helius.dev) |
+| **QuickNode** | 10M credits | [quicknode.com](https://quicknode.com) |
+| **Alchemy** | 300M CU | [alchemy.com](https://alchemy.com) |
+| **Public** | Rate limited | `api.mainnet-beta.solana.com` |
+
+Public works for testing but will hit rate limits in production.
+
+---
+
+## Files
+
+```
+solana-blinks-skill/
+├── SKILL.md           # This file
+├── QUICKSTART.md      # Beginner setup guide
+├── README.md          # Package readme
+├── .env.example       # Environment template
+├── src/               # Source code
+├── dist/              # Built CLI + SDK
+├── docs/              # Protocol status, specs
+└── tests/             # Protocol endpoint tests
+```
 
 ---
 
 ## Links
 
+- [QUICKSTART.md](./QUICKSTART.md) - Get started in 10 minutes
 - [Solana Actions Spec](https://solana.com/developers/guides/advanced/actions)
-- [Dialect Registry](https://actions-registry.dial.to/all)
-- [Dialect Docs](https://docs.dialect.to)
-- [Blinks Inspector](https://www.blinks.xyz/inspector)
+- [Dialect Registry](https://actions-registry.dial.to/all) - 900+ trusted hosts
+- [Blinks Inspector](https://www.blinks.xyz/inspector) - Visual blink tester

@@ -1,131 +1,215 @@
-# Protocol Endpoint Status
+# Protocol Status
 
-Last tested: 2026-02-01
+> Last tested: 2026-02-01
 
 ## Summary
 
-| Status | Count |
-|--------|-------|
-| ✅ Working | 6 |
-| ⚠️ Partial | 2 |
-| ❌ Unknown Paths | 5 |
-
-## Detailed Status
-
-### ✅ Fully Working
-
-#### Kamino (`kamino.dial.to`)
-- **GET** `/api/v0/lend/{vault}/deposit` → Returns action metadata
-- **GET** `/api/v0/lend/{vault}/withdraw` → Returns action metadata
-- **POST** with `{ account, type: "transaction" }` → Returns transaction
-- **Vaults**: `usdg-prime`, `usdc-main`, `sol-main`, etc.
-- **Status**: Production ready
-
-#### Jupiter (`jupiter.dial.to`) ✅ NEW
-- **Pattern**: `/swap/{inputMint}-{outputMint}` or `/swap/{inputMint}-{outputMint}/{amount}`
-- **GET** `/swap/SOL-USDC` → Returns action metadata with 4 actions (0.1, 0.5, 1 SOL, custom)
-- **GET** `/swap/SOL-USDC/1` → Returns direct transaction action
-- **Example**: `https://jupiter.dial.to/swap/So111...112-EPjFWdd...t1v`
-- **Status**: Production ready
-
-#### Tensor (`tensor.trade`, `tensor.dial.to`)
-- **actions.json** routes `/trade/**` → `tensor.dial.to/buy-floor/**`
-- **actions.json** routes `/item/**` → `tensor.dial.to/bid/**`
-- **Status**: Working (NFT-specific, needs collection/item params)
-
-#### Jito (`jito.dial.to`) ✅ FIXED
-- **Pattern**: `/stake` or `/stake/percentage/{pct}` or `/stake/amount/{amount}`
-- **GET** `/stake` → Returns 4 actions (25%, 50%, 100%, custom)
-- **Example**: `https://jito.dial.to/stake`
-- **Note**: Was blocked by Cloudflare TLS fingerprinting. Fixed by using curl.
-- **Status**: Production ready
-
-#### Helius (`helius.dial.to`) ✅ DISCOVERED
-- **Pattern**: `/stake` or `/stake/{amount}`
-- **GET** `/stake` → Returns 4 actions (1, 5, 10 SOL, custom)
-- **Example**: `https://helius.dial.to/stake`
-- **Status**: Production ready
+| Status | Count | Protocols |
+|--------|-------|-----------|
+| ✅ Working | 4 | Kamino, Jito, Tensor, Drift |
+| 🔑 Needs Key | 2 | Lulo, Jupiter |
+| ❌ Broken | 2 | Sanctum, some dial.to |
+| ❓ Untested | 6 | MarginFi, Orca, Meteora, Helius, Raydium, Magic Eden |
 
 ---
 
-### ⚠️ Partial / Needs Discovery
+## ✅ Working Protocols
 
-#### Meteora (`meteora.dial.to`)
-- **actions.json** exists with 4 rules:
-  - `/*` → `/api/*`
-  - `/api/**` → `/api/**`
-  - `/bonding-curve/**` → `/api/bonding-curve/**`
-  - `/dlmm/**` → `/api/dlmm/**`
-- **Issue**: Paths return 404. Likely need specific pool IDs.
-- **Next**: Try `/api/dlmm/{poolAddress}/add-liquidity`
+### Kamino Finance
+**Status:** Fully working  
+**Endpoint:** `kamino.dial.to`
 
-#### Drift (`app.drift.trade`)
-- **actions.json** exists with 2 rules:
-  - `/deposit` → `/api/blinks/deposit`
-  - `/elections` → `/api/blinks/elections`
-- **Issue**: `/api/blinks/deposit` returns 500 Internal Server Error
-- **Status**: Endpoint exists but broken
+| Action | Path | Tested |
+|--------|------|--------|
+| Deposit to vault | `/api/v0/lend/{vault}/deposit` | ✅ |
+| Withdraw from vault | `/api/v0/lend/{vault}/withdraw` | ✅ |
+| Borrow | `/api/v0/borrow/...` | ⚠️ Needs testing |
+| Repay | `/api/v0/repay/...` | ⚠️ Needs testing |
 
-#### Raydium (`share.raydium.io`)
-- **No actions.json** found (404)
-- **Issue**: Need to discover correct endpoints
-- **Next**: Check if specific swap URL patterns work
+**Vault slugs:** `usdc-main`, `sol-main`, `usdg-prime`, etc.
 
----
-
-### ❌ Unknown Paths (return 404)
-
-#### Sanctum (`sanctum.dial.to`)
-- All tested paths return 404
-- **Issue**: Endpoint structure unknown (not Cloudflare block)
-
-#### Orca (`orca.dial.to`)
-- All tested paths return 404
-- **Issue**: Endpoint structure unknown
-
-#### MarginFi (`marginfi.dial.to`)
-- All tested paths return 404
-- **Issue**: Endpoint structure unknown
-
-#### Lulo (`lulo.dial.to`, `blink.lulo.fi`)
-- `lulo.dial.to`: 404 on all paths
-- `blink.lulo.fi`: SSL certificate error (526)
-- **Issue**: Both endpoints broken
-
-#### Magic Eden (`api-mainnet.magiceden.dev`)
-- Returns 400 Bad Request
-- **Issue**: Needs specific item/collection parameters
-
----
-
-## Test Commands
-
+**Example:**
 ```bash
-# Run all protocol tests
-npx vitest run tests/protocols.test.ts
-
-# Run endpoint discovery
-npx vitest run tests/discover-paths.test.ts
-
-# Test specific protocol
-npx vitest run tests/protocols.test.ts -t "kamino"
+blinks execute "https://kamino.dial.to/api/v0/lend/usdc-main/deposit" --amount=100
 ```
 
-## Registry Stats
+---
 
-- **Trusted hosts**: 964
-- **Malicious hosts**: 10
-- **Registry URL**: https://actions-registry.dial.to/all
+### Jito
+**Status:** Working (use jito.network)  
+**Endpoints:** `jito.network` (preferred), `jito.dial.to` (sometimes blocked)
 
-## Notes
+| Action | Path | Tested |
+|--------|------|--------|
+| Stake SOL | `/stake` | ✅ |
 
-1. **TLS Fingerprinting**: Node.js fetch was blocked by Cloudflare due to TLS fingerprinting. Fixed by using curl subprocess.
+**Note:** `jito.dial.to` sometimes returns 403 due to Cloudflare. Use `jito.network` instead.
 
-2. **Path discovery needed**: Most protocols don't have documented API paths. Kamino and Jupiter patterns discovered through testing.
+**Example:**
+```bash
+blinks execute "https://jito.network/stake" --amount=1
+```
 
-3. **Parameter requirements**: Many endpoints need specific parameters:
-   - Jupiter: `/swap/{inputMint}-{outputMint}`
-   - Jito: `/stake/amount/{amount}`
-   - Helius: `/stake/{amount}`
+---
 
-4. **Still unknown**: Orca, MarginFi, Raydium, Lulo, Sanctum return 404 for all tested paths.
+### Tensor
+**Status:** Working  
+**Endpoints:** `tensor.dial.to`, `tensor.trade`
+
+| Action | Path | Tested |
+|--------|------|--------|
+| Buy floor | `/buy-floor/{collection}` | ✅ |
+| Place bid | `/bid/{collection}` | ✅ |
+
+---
+
+### Drift
+**Status:** Working  
+**Endpoint:** `app.drift.trade`
+
+| Action | Path | Tested |
+|--------|------|--------|
+| Deposit to vault | `/api/blinks/deposit` | ✅ |
+| Withdraw from vault | `/api/blinks/withdraw` | ⚠️ Needs testing |
+
+---
+
+## 🔑 Needs API Key
+
+### Lulo Finance
+**Status:** Requires API key  
+**Get key:** [dev.lulo.fi](https://dev.lulo.fi)
+
+| Action | Notes |
+|--------|-------|
+| Deposit | Works with API key |
+| Withdraw | **24-hour cooldown period** - must wait after requesting |
+
+**Header required:**
+```
+x-api-key: YOUR_LULO_API_KEY
+```
+
+**Important:** Withdrawals are async. You request a withdrawal, wait 24 hours, then claim.
+
+---
+
+### Jupiter
+**Status:** Requires paid API key (as of Jan 2026)  
+**Get key:** [portal.jup.ag](https://portal.jup.ag)
+
+The free tier was deprecated in January 2026. Paid plans start at $XXX/month.
+
+**Alternative:** Use Raydium for swaps (if working) or Orca.
+
+---
+
+## ❌ Broken Protocols
+
+### Sanctum
+**Status:** Blocked by Cloudflare  
+**Endpoint:** `sanctum.dial.to`
+
+All requests return 403. Cloudflare blocks server/datacenter IPs.
+
+**Workaround:** Use their web UI at [sanctum.so](https://sanctum.so)
+
+---
+
+### Various dial.to endpoints
+Some dial.to subdomains have aggressive rate limiting or Cloudflare protection.
+
+**Pattern:** Works from browsers but fails from servers.
+
+**Workaround:** Try the protocol's self-hosted endpoint if available.
+
+---
+
+## ❓ Untested Protocols
+
+These protocols have dial.to endpoints but haven't been verified:
+
+| Protocol | Endpoint | Expected Actions |
+|----------|----------|-----------------|
+| MarginFi | `marginfi.dial.to` | Lend, borrow |
+| Orca | `orca.dial.to` | Swap, LP |
+| Meteora | `meteora.dial.to` | DLMM, bonding curves |
+| Helius | `helius.dial.to` | Staking |
+| Raydium | `share.raydium.io` | Swap, LP |
+| Magic Eden | `magiceden.dial.to` | NFT trading |
+
+To test a protocol:
+```bash
+blinks inspect "https://{protocol}.dial.to"
+```
+
+---
+
+## Testing New Protocols
+
+### 1. Check the registry
+```bash
+curl -s "https://actions-registry.dial.to/all" | jq '.[] | select(.host | contains("protocol-name"))'
+```
+
+### 2. Inspect the endpoint
+```bash
+blinks inspect "https://protocol.dial.to"
+```
+
+### 3. Dry run a transaction
+```bash
+blinks execute "https://protocol.dial.to/action" --amount=1 --dry-run
+```
+
+### 4. Execute with small amount
+```bash
+blinks execute "https://protocol.dial.to/action" --amount=1
+```
+
+---
+
+## Known Issues
+
+### Cloudflare Blocking
+Many dial.to endpoints use Cloudflare which blocks datacenter IPs.
+
+**Symptoms:** 403 Forbidden, "Access Denied", challenge pages
+
+**Affected:** Sanctum, sometimes Jito, possibly others
+
+**Solutions:**
+1. Use protocol's self-hosted endpoint
+2. Run from residential IP
+3. Use the protocol's web UI
+
+### Rate Limiting
+Public RPC and some protocol endpoints rate-limit aggressively.
+
+**Symptoms:** 429 Too Many Requests, slow responses
+
+**Solutions:**
+1. Use dedicated RPC (Helius/QuickNode free tier)
+2. Add delays between requests
+3. Cache action metadata
+
+### Stale Transactions
+Blink transactions expire after ~60 seconds.
+
+**Symptoms:** "Transaction simulation failed", "Blockhash not found"
+
+**Solutions:**
+1. Execute immediately after getting transaction
+2. Don't batch-fetch transactions
+3. Retry on failure
+
+---
+
+## Reporting Issues
+
+If you find a protocol that's broken or working differently than documented:
+
+1. Test with `blinks inspect` and `--dry-run`
+2. Note the error message and HTTP status
+3. Check if it works from the protocol's web UI
+4. Update this doc or open an issue

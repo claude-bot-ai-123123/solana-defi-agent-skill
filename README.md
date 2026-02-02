@@ -2,6 +2,10 @@
 
 Production-ready Solana Blinks CLI and SDK with direct [Solana Actions](https://solana.com/developers/guides/advanced/actions) integration.
 
+> **New to Solana Blinks?** Start with [QUICKSTART.md](./QUICKSTART.md) - get running in 10 minutes.
+> 
+> **Using with OpenClaw?** See [SKILL.md](./SKILL.md) for AI agent integration.
+
 ## Features
 
 - 🔗 **Direct Solana Actions** - No external API dependencies
