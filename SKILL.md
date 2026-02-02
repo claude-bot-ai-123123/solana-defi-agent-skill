@@ -1,3 +1,8 @@
+---
+name: solana-defi-agent
+description: DeFi toolkit for AI agents on Solana — swaps, lending, staking via Solana Actions/Blinks
+---
+
 # Solana DeFi Agent Skill
 
 > DeFi toolkit for AI agents on Solana — swaps, lending, staking, and more
@@ -16,7 +21,7 @@ Solana Blinks (Blockchain Links) let you execute DeFi operations—swaps, deposi
 
 ```bash
 # Example: Deposit USDC to Kamino yield vault
-blinks execute "https://kamino.dial.to/api/v0/lend/usdc-main/deposit" --amount=100
+blinks execute "https://kamino.dial.to/api/v0/lend/usdc-prime/deposit" --amount=100
 ```
 
 ---
@@ -102,8 +107,8 @@ blinks execute <url> --amount=100
 
 ```bash
 # Kamino
-blinks kamino deposit --vault=usdc-main --amount=100
-blinks kamino withdraw --vault=usdc-main --amount=50
+blinks kamino deposit --vault=usdc-prime --amount=100
+blinks kamino withdraw --vault=usdc-prime --amount=50
 
 # Jito
 blinks jito stake --amount=1
@@ -137,13 +142,13 @@ if (!trusted) throw new Error('Untrusted host!');
 
 // 2. Get action metadata
 const metadata = await actions.getAction(
-  'https://kamino.dial.to/api/v0/lend/usdc-main/deposit'
+  'https://kamino.dial.to/api/v0/lend/usdc-prime/deposit'
 );
 console.log('Available actions:', metadata.links.actions);
 
 // 3. Get transaction
 const tx = await actions.postAction(
-  'https://kamino.dial.to/api/v0/lend/usdc-main/deposit?amount=100',
+  'https://kamino.dial.to/api/v0/lend/usdc-prime/deposit?amount=100',
   wallet.address
 );
 

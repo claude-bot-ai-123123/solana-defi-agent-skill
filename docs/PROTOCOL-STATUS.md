@@ -58,11 +58,11 @@ solana-toolkit execute "https://share.raydium.io/dialect/actions/swap/info"
 | Borrow | `/api/v0/borrow/...` | ⚠️ Needs testing |
 | Repay | `/api/v0/repay/...` | ⚠️ Needs testing |
 
-**Vault slugs:** `usdc-main`, `sol-main`, `usdg-prime`, etc.
+**Vault slugs:** `usdc-prime`, `jlp-core`, `sol-core`, etc.
 
 **Example:**
 ```bash
-blinks execute "https://kamino.dial.to/api/v0/lend/usdc-main/deposit" --amount=100
+blinks execute "https://kamino.dial.to/api/v0/lend/usdc-prime/deposit?amount=0.1"
 ```
 
 ---
@@ -157,16 +157,22 @@ Some dial.to subdomains have aggressive rate limiting or Cloudflare protection.
 
 ---
 
-## ❓ Untested Protocols
+## ⚠️ Web-Only Protocols
 
-These protocols have dial.to endpoints but haven't been verified:
+These protocols have blinks but only work via browser/dial.to interstitial:
+
+| Protocol | Endpoint | Actions | Notes |
+|----------|----------|---------|-------|
+| **Meteora** | `meteora.dial.to` | Token launch, DLMM | API returns 404 from servers. Use browser. |
+| **MarginFi** | `marginfi.dial.to` | Lend, borrow | No public API endpoints found |
+| **Helius** | `helius.dial.to` | Staking | 404 on actions.json |
+| **Magic Eden** | `api-mainnet.magiceden.dev` | NFT trading | Needs specific item paths |
+
+## ❓ Untested Protocols
 
 | Protocol | Endpoint | Expected Actions |
 |----------|----------|-----------------|
-| MarginFi | `marginfi.dial.to` | Lend, borrow |
-| Meteora | `meteora.dial.to` | DLMM, bonding curves |
-| Helius | `helius.dial.to` | Staking |
-| Magic Eden | `magiceden.dial.to` | NFT trading |
+| Streamflow | `blink.streamflow.finance` | Airdrop claims |
 
 To test a protocol:
 ```bash

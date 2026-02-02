@@ -97,6 +97,130 @@ walletCmd
   });
 
 // ============================================
+// Portfolio Command
+// ============================================
+
+program
+  .command('portfolio')
+  .description('Show full portfolio - tokens, DeFi positions, staking')
+  .option('-w, --wallet <address>', 'Wallet address (defaults to configured)')
+  .action(async (opts) => {
+    try {
+      const connection = getConnection();
+      let walletAddress: string;
+      
+      if (opts.wallet) {
+        walletAddress = opts.wallet;
+      } else {
+        const wallet = Wallet.fromEnv();
+        walletAddress = wallet.address;
+      }
+      
+      info(`Fetching portfolio for ${walletAddress}...`);
+      
+      // 1. Get token balances
+      const balances = await getWalletTokenBalances(connection, walletAddress);
+      
+      // 2. Check for LST tokens (staking positions)
+      const LST_MINTS: Record<string, string> = {
+        'J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn': 'JitoSOL',
+        'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So': 'mSOL',
+        'bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1': 'bSOL',
+        'he1iusmfkpAdwvxLNGV8Y1iSbj4rUy6yMhEA3fotn9A': 'hSOL',
+        'LAinEtNLgpmCP9Rvsf5Hn8W6EhNiKLZQti1xfWMLy6X': 'laineSOL',
+        'Comp4ssDzXcLeu2MnLuGNNFC4cmLPMng8qWHPvzAMU1h': 'compassSOL',
+      };
+      
+      const stakingPositions = balances
+        .filter(b => LST_MINTS[b.mint])
+        .map(b => ({
+          protocol: 'Staking',
+          type: 'Liquid Staking',
+          token: LST_MINTS[b.mint],
+          balance: b.balance,
+          mint: b.mint,
+        }));
+      
+      // 3. Check Kamino positions via Hubble API
+      let kaminoPositions: Array<{ protocol: string; type: string; market?: string; deposited?: number; borrowed?: number; healthFactor?: number }> = [];
+      try {
+        const kaminoRes = await fetch(`https://api.hubbleprotocol.io/kamino/users/${walletAddress}/obligations`);
+        if (kaminoRes.ok) {
+          const kaminoData = await kaminoRes.json() as Array<{ market: string; deposits: Array<{ amount: number }>; borrows: Array<{ amount: number }>; ltv: number }>;
+          if (Array.isArray(kaminoData) && kaminoData.length > 0) {
+            kaminoPositions = kaminoData.map(pos => ({
+              protocol: 'Kamino',
+              type: 'Lending',
+              market: pos.market,
+              deposited: pos.deposits?.reduce((sum: number, d: { amount: number }) => sum + d.amount, 0) || 0,
+              borrowed: pos.borrows?.reduce((sum: number, b: { amount: number }) => sum + b.amount, 0) || 0,
+              healthFactor: pos.ltv ? (1 / pos.ltv) : undefined,
+            }));
+          }
+        }
+      } catch {
+        // Kamino API unavailable
+      }
+      
+      // 4. Check Drift positions
+      let driftPositions: Array<{ protocol: string; type: string; vault?: string; balance?: number }> = [];
+      try {
+        const driftRes = await fetch(`https://mainnet-beta.api.drift.trade/users/${walletAddress}`);
+        if (driftRes.ok) {
+          const driftData = await driftRes.json() as { vaultDeposits?: Array<{ vault: string; balance: number }> };
+          if (driftData.vaultDeposits && driftData.vaultDeposits.length > 0) {
+            driftPositions = driftData.vaultDeposits.map(v => ({
+              protocol: 'Drift',
+              type: 'Vault',
+              vault: v.vault,
+              balance: v.balance,
+            }));
+          }
+        }
+      } catch {
+        // Drift API unavailable
+      }
+      
+      // 5. Check Marinade staking
+      let marinadePosition = null;
+      const msolBalance = balances.find(b => b.mint === 'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So');
+      if (msolBalance && msolBalance.balance > 0) {
+        marinadePosition = {
+          protocol: 'Marinade',
+          type: 'Liquid Staking',
+          token: 'mSOL',
+          balance: msolBalance.balance,
+        };
+      }
+      
+      // 6. Build portfolio summary
+      const portfolio = {
+        wallet: walletAddress,
+        timestamp: new Date().toISOString(),
+        tokens: balances,
+        defiPositions: [
+          ...stakingPositions,
+          ...kaminoPositions,
+          ...driftPositions,
+          ...(marinadePosition ? [marinadePosition] : []),
+        ],
+        summary: {
+          tokenCount: balances.length,
+          defiPositionCount: stakingPositions.length + kaminoPositions.length + driftPositions.length + (marinadePosition ? 1 : 0),
+          hasStaking: stakingPositions.length > 0,
+          hasLending: kaminoPositions.length > 0,
+          hasVaults: driftPositions.length > 0,
+        },
+      };
+      
+      console.log(formatOutput(portfolio, getFormat()));
+    } catch (e) {
+      error((e as Error).message);
+      process.exit(1);
+    }
+  });
+
+// ============================================
 // Protocols Command
 // ============================================
 

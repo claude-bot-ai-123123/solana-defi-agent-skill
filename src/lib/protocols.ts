@@ -109,16 +109,16 @@ export const PROTOCOL_ACTION_ENDPOINTS: Record<string, {
     displayName: 'Meteora',
     category: 'amm',
     website: 'https://meteora.ag',
-    status: 'working',
+    status: 'partial',
     actions: {
-      // Meteora DLMM - requires pool pubkey
-      'dlmm-add': 'https://meteora.dial.to/api/v0/dlmm/{dlmmPool}/add-liquidity',
-      'dlmm-remove': 'https://meteora.dial.to/api/v0/dlmm/{dlmmPool}/remove-liquidity',
-      // Meteora Bonding Curve (token launch)
-      'launch-token': 'https://meteora.dial.to/api/v0/bonding-curve/launch-token',
+      // Meteora DLMM - requires pool pubkey (browser-only, server calls return 404)
+      'dlmm-add': 'https://meteora.dial.to/dlmm/{dlmmPool}/add-liquidity',
+      'dlmm-remove': 'https://meteora.dial.to/dlmm/{dlmmPool}/remove-liquidity',
+      // Meteora Bonding Curve (token launch) - web interface only
+      'launch-token': 'https://meteora.dial.to/',
     },
     trustedHosts: ['meteora.dial.to', 'app.meteora.ag'],
-    notes: 'DLMM needs pool address. Launch token requires name, symbol, description, imageUri.',
+    notes: 'Web interface only - API endpoints return 404 from servers. Use browser or dial.to interstitial for token launches.',
   },
   
   jupiter: {
